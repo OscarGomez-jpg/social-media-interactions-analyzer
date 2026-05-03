@@ -1,0 +1,39 @@
+<div class="slide slide-content" data-slide="8">
+    <div class="slide-header"><span class="slide-number">09</span><h2>Memoria y FinOps en la Arquitectura</h2></div>
+    <div class="memoria-status">
+        <h3>📌 Estado Actual</h3>
+        <ul>
+            <li>Datos en memoria (RAM)</li>
+            <li>No uso de base de datos vectorial</li>
+            <li>No generación de embeddings</li>
+        </ul>
+        <p class="costo"><strong>Costo de memoria:</strong> prácticamente nulo</p>
+    </div>
+    <div class="memoria-escenarios">
+        <div class="escenario-card sin-opt">
+            <h3>Escenario sin optimización</h3>
+            <ul>
+                <li>Guardar todos los posts como embeddings</li>
+                <li>100k posts → 100k embeddings</li>
+                <li>Alto costo en almacenamiento y consultas</li>
+            </ul>
+        </div>
+        <div class="escenario-card optimizado">
+            <h3>Escenario optimizado (FinOps)</h3>
+            <ul>
+                <li>Filtrado por engagement (likes, replies)</li>
+                <li>Uso de métricas ya calculadas</li>
+                <li>Solo datos relevantes se almacenan</li>
+            </ul>
+        </div>
+    </div>
+    <div class="impacto-box">
+        <h3>💰 Impacto FinOps</h3>
+        <ul>
+            <li>Reducción de hasta 90% en almacenamiento</li>
+            <li>Menor número de consultas</li>
+            <li>Menor latencia</li>
+            <li>Escalabilidad controlada</li>
+        </ul>
+    </div>
+</div>

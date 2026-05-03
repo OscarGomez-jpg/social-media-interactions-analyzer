@@ -1,0 +1,27 @@
+<div class="slide slide-content" data-slide="3">
+    <div class="slide-header"><span class="slide-number">04</span><h2>Arquitectura del Sistema</h2></div>
+    <div class="arch-diagram">
+        <div class="arch-layer">
+            <div class="layer-label">PRESENTATION</div>
+            <div class="arch-box user">👤 Usuario<br><span>Streamlit / Terminal</span></div>
+        </div>
+        <div class="arch-connector">↓ Tool Calling</div>
+        <div class="arch-layer">
+            <div class="layer-label">ORCHESTRATION</div>
+            <div class="arch-box agent">🤖 Agente LangGraph<br><span>Decisiones + Estado</span></div>
+            <div class="arch-box cache">⚡ Cache<br><span>Redis / Memoria</span></div>
+        </div>
+        <div class="arch-connector">↓ REST API</div>
+        <div class="arch-layer">
+            <div class="layer-label">MCP SERVICES</div>
+            <div class="arch-box mcp">📝 Resumen</div>
+            <div class="arch-box mcp">📊 Métricas</div>
+            <div class="arch-box mcp obligatorio">🚀 Propagación</div>
+        </div>
+        <div class="arch-connector">↓</div>
+        <div class="arch-layer">
+            <div class="layer-label">DATA</div>
+            <div class="arch-box data">📁 Dataset Social<br><span>JSON / CSV</span></div>
+        </div>
+    </div>
+</div>
