@@ -37,3 +37,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Agents
+.agents
+.claude
