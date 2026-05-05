@@ -116,22 +116,27 @@ def get_summary(sentiment: str = None) -> dict:
     print(f"🔄 [MCP] get_summary: Procesando {len(texts)} textos...")
 
     prompt = (
-        "Resume las temáticas principales y el clima de estos posts de redes sociales:\n"
+        "En máximo 2 párrafos, resume las temáticas principales y el clima general "
+        "de estos posts de redes sociales. Sé directo y no uses listas numeradas:\n"
         + "\n".join([f"- {t[:150]}" for t in texts])
     )
 
     try:
         import requests
-        ollama_url = f"{_ollama_base()}/api/generate"
+        ollama_url = f"{_ollama_base()}/api/chat"
         print(f"🦙 [MCP] get_summary: Llamando a Ollama en {ollama_url}")
         resp = requests.post(ollama_url, json={
             "model": "gemma4:e2b",
-            "prompt": prompt,
+            "messages": [{"role": "user", "content": prompt}],
             "stream": False,
-            "options": {"num_predict": 256},
+            "think": False,
+            "options": {"num_predict": 350},
         }, timeout=90)
         if resp.status_code == 200:
-            return {"available": True, "summary": resp.json().get("response", ""), "method": "ollama_local"}
+            data = resp.json()
+            msg = data.get("message", {})
+            summary = msg.get("content", "") or data.get("response", "")
+            return {"available": True, "summary": summary, "method": "ollama_local"}
         return {"available": False, "error": f"Ollama returned status {resp.status_code}"}
     except Exception as e:
         return {"available": False, "error": f"Error en resumen (Ollama): {str(e)}"}

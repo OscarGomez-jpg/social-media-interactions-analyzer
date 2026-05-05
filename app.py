@@ -161,7 +161,8 @@ def display_result(result: dict):
 
     # Formato para Resumen
     elif "summary" in result:
-        st.markdown(result.get("summary", "_No se recibió contenido en el resumen._"))
+        summary_text = result.get("summary", "")
+        st.markdown(summary_text if summary_text else "_No se recibió contenido en el resumen._")
         if result.get("method"):
             st.caption(f"Generado con: {result['method']}")
 
