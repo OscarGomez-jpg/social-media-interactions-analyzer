@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/osgomez/social-listening-monolith/pkg/models"
+	"social-media-analyzer/pkg/models"
 )
 
 // Store holds the mock data (singleton pattern)

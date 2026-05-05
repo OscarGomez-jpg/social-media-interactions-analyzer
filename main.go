@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/osgomez/social-listening-monolith/pkg/data"
-	"github.com/osgomez/social-listening-monolith/pkg/llm"
-	"github.com/osgomez/social-listening-monolith/pkg/models"
-	"github.com/osgomez/social-listening-monolith/pkg/tools"
+	"social-media-analyzer/pkg/data"
+	"social-media-analyzer/pkg/llm"
+	"social-media-analyzer/pkg/models"
+	"social-media-analyzer/pkg/tools"
 )
 
 // Agent orchestrates tool execution and LLM integration

@@ -1,4 +1,4 @@
-module github.com/osgomez/social-listening-monolith
+module social-media-analyzer
 
 go 1.23.0
 

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/osgomez/social-listening-monolith/pkg/data"
-	"github.com/osgomez/social-listening-monolith/pkg/models"
+	"social-media-analyzer/pkg/data"
+	"social-media-analyzer/pkg/models"
 )
 
 // Tools executes the 3 social listening tools
