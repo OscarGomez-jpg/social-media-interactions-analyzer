@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Media Interactions Analyzer - Pitch</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="slide-container" id="slideContainer">
+        <!-- Slide 1: Título -->
+        <div class="slide slide-title active" data-slide="0">
+            <div class="title-content">
+                <h1>Social Media<br><span class="highlight">Interactions Analyzer</span></h1>
+                <p class="subtitle">Transformando el caos de redes sociales en insights accionables</p>
+                <p class="tagline">Con Inteligencia Artificial + MCP</p>
+            </div>
+            <div class="team-section">
+                <p class="team-label">EQUIPO DE DESARROLLO</p>
+                <div class="team-grid">
+                    <div class="team-member"><div class="avatar">DH</div><span>David Henao</span></div>
+                    <div class="team-member"><div class="avatar">JM</div><span>Juan Manuel Marín</span></div>
+                    <div class="team-member"><div class="avatar">JA</div><span>Johan Daniel Aguirre</span></div>
+                    <div class="team-member"><div class="avatar">OG</div><span>Óscar Andrés Gómez</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: Problema -->
+        <div class="slide slide-content" data-slide="1">
+            <div class="slide-header"><span class="slide-number">02</span><h2>El Problema</h2></div>
+            <div class="content-grid">
+                <div class="problem-card">
+                    <div class="card-icon">🎯</div>
+                    <h3>Contexto</h3>
+                    <p>Las organizaciones reciben miles de publicaciones diarias en redes sociales, pero transformar ese "caos" en insights accionables es un desafío constante.</p>
+                </div>
+                <div class="problem-card">
+                    <div class="card-icon">⚠️</div>
+                    <h3>El Desafío</h3>
+                    <ul>
+                        <li>Preguntas abstractas no tienen respuesta técnica</li>
+                        <li>Sin capa de inteligencia para traducir</li>
+                        <li>Desconexión entre usuario y datos</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="quote-box">
+                <p>"¿Cómo va la cosa en Twitter?" → <span class="highlight">No tiene respuesta técnica</span></p>
+            </div>
+        </div>
+
+        <!-- Slide 3: Solución -->
+        <div class="slide slide-content" data-slide="2">
+            <div class="slide-header"><span class="slide-number">03</span><h2>La Solución</h2></div>
+            <p class="section-intro">Un sistema de soporte de decisiones que transforma lenguaje natural en insights</p>
+            <div class="solution-flow">
+                <div class="flow-step"><div class="step-icon">👤</div><h4>Usuario</h4><p>Lenguaje Natural</p></div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step highlight"><div class="step-icon">🤖</div><h4>Agente Go</h4><p>ReAct + Caché SHA-256</p></div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step"><div class="step-icon">🔧</div><h4>MCPs</h4><p>FastMCP · stdio</p></div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step"><div class="step-icon">📊</div><h4>Datos</h4><p>Parquet</p></div>
+            </div>
+            <div class="tech-tags">
+                <span class="tag">FastMCP</span>
+                <span class="tag">Go (ReAct)</span>
+                <span class="tag">Streamlit</span>
+                <span class="tag">Ollama / GPT-4o-mini</span>
+            </div>
+        </div>
+
+        <!-- Slide 4: Arquitectura -->
+        <div class="slide slide-content" data-slide="3">
+            <div class="slide-header"><span class="slide-number">04</span><h2>Arquitectura del Sistema</h2></div>
+            <div class="arch-diagram">
+                <div class="arch-layer">
+                    <div class="layer-label">PRESENTATION</div>
+                    <div class="arch-box user">👤 Usuario<br><span>Streamlit / Terminal</span></div>
+                </div>
+                <div class="arch-connector">↓ HTTP POST /query</div>
+                <div class="arch-layer">
+                    <div class="layer-label">ORCHESTRATION</div>
+                    <div class="arch-box agent">🤖 Agente Go (ReAct)<br><span>Tool Calling + Estado</span></div>
+                    <div class="arch-box cache">⚡ Caché SHA-256<br><span>In-memory · doble capa</span></div>
+                </div>
+                <div class="arch-connector">↓ JSON-RPC 2.0 · stdio</div>
+                <div class="arch-layer">
+                    <div class="layer-label">MCP SERVICES (Python · FastMCP)</div>
+                    <div class="arch-box mcp">📝 summary_mcp<br><span>:8003</span></div>
+                    <div class="arch-box mcp">📊 metrics_mcp<br><span>:8001</span></div>
+                    <div class="arch-box mcp obligatorio">🚀 propagation_mcp<br><span>:8002</span></div>
+                </div>
+                <div class="arch-connector">↓</div>
+                <div class="arch-layer">
+                    <div class="layer-label">DATA</div>
+                    <div class="arch-box data">📁 db/data.parquet<br><span>Pandas · PyArrow</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: MCPs -->
+        <div class="slide slide-content" data-slide="4">
+            <div class="slide-header"><span class="slide-number">05</span><h2>Microservicios MCP</h2></div>
+            <div class="mcp-grid">
+                <div class="mcp-card">
+                    <span class="mcp-bg-num">01</span>
+                    <div class="mcp-header"><span class="mcp-num">01</span><span class="mcp-type">LLM</span></div>
+                    <h3>Resumen General</h3>
+                    <p class="mcp-desc">Síntesis cualitativa con IA</p>
+                    <div class="mcp-tech">gpt-4o-mini</div>
+                    <ul class="mcp-features">
+                        <li>Contexto automático</li>
+                        <li>Análisis de sentimiento</li>
+                        <li>Temas principales</li>
+                    </ul>
+                </div>
+                <div class="mcp-card">
+                    <span class="mcp-bg-num">02</span>
+                    <div class="mcp-header"><span class="mcp-num">02</span><span class="mcp-type">Tradicional</span></div>
+                    <h3>Análisis de Métricas</h3>
+                    <p class="mcp-desc">Datos duros sin IA</p>
+                    <div class="mcp-tech">Pandas · :8001</div>
+                    <ul class="mcp-features">
+                        <li>Total posts · likes</li>
+                        <li>Top fuentes por reach</li>
+                        <li>Engagement por sentimiento</li>
+                    </ul>
+                </div>
+                <div class="mcp-card obligatorio">
+                    <span class="mcp-bg-num">!</span>
+                    <div class="mcp-header"><span class="mcp-num">!</span><span class="mcp-type">OBLIGATORIO</span></div>
+                    <h3>Propagación</h3>
+                    <p class="mcp-desc">Análisis de impacto</p>
+                    <div class="mcp-tech">Pandas · BFS · :8002</div>
+                    <ul class="mcp-features">
+                        <li>Árbol parentId → replies</li>
+                        <li>Alcance acumulativo (BFS)</li>
+                        <li>Top posts por reach</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="coverage-note">
+                <span class="coverage-icon">✓</span>
+                <span>¿Qué se dice? · Quién importa · Cómo se mueve</span>
+            </div>
+        </div>
+
+        <!-- Slide 6: Diferenciadores -->
+        <div class="slide slide-content" data-slide="5">
+            <div class="slide-header"><span class="slide-number">06</span><h2>Diferenciadores</h2></div>
+            <div class="diff-grid">
+                <div class="diff-card cost">
+                    <div class="diff-icon">💰</div>
+                    <h3>Optimización Costo</h3>
+                    <ul>
+                        <li><span class="check">✓</span> Modelos "pequeños" para tareas específicas (gpt-4o-mini, gemini-flash)</li>
+                        <li><span class="check">✓</span> Cache de resultados (Redis/Memoria)</li>
+                        <li><span class="check">✓</span> Pre-procesamiento de texto</li>
+                        <li><span class="check">✓</span> Menos tokens = menos costo</li>
+                    </ul>
+                </div>
+                <div class="diff-card time">
+                    <div class="diff-icon">⚡</div>
+                    <h3>Optimización Tiempo</h3>
+                    <ul>
+                        <li><span class="check">✓</span> FastMCP para implementación rápida de herramientas</li>
+                        <li><span class="check">✓</span> Lógica ReAct en Go (sin framework extra)</li>
+                        <li><span class="check">✓</span> Pandas para métricas (no reinventar la rueda)</li>
+                        <li><span class="check">✓</span> Streamlit para interfaz en minutos</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="strategy-box">
+                <h4>✅ Hoja de Ruta — Completada</h4>
+                <div class="strategy-items" style="grid-template-columns: repeat(2, 1fr);">
+                    <div class="strategy-item" style="border-left: 4px solid #FF9800;">
+                        <span class="phase">✅ Fase 1: Data</span><span>db/data.parquet · jerarquía parentId → replies</span>
+                    </div>
+                    <div class="strategy-item" style="border-left: 4px solid #4CAF50;">
+                        <span class="phase">✅ Fase 2: MCPs</span><span>metrics · propagation · summary (FastMCP)</span>
+                    </div>
+                    <div class="strategy-item" style="border-left: 4px solid #AB47BC;">
+                        <span class="phase">✅ Fase 3: Agente Go</span><span>ReAct + caché SHA-256 + cliente JSON-RPC</span>
+                    </div>
+                    <div class="strategy-item" style="border-left: 4px solid #42A5F5;">
+                        <span class="phase">🎬 Fase 4: Demo</span><span>Streamlit live · métricas desde MCP</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: FinOps -->
+        <div class="slide slide-content" data-slide="6">
+            <div class="slide-header"><span class="slide-number">07</span><h2>FinOps – Comparación de Costos</h2></div>
+            <div class="finops-grid">
+                <div class="finops-card">
+                    <h3>API (Grok)</h3>
+                    <p class="price">$0.002 – $0.005 / request</p>
+                    <p class="total">100k → $200 – $500</p>
+                    <ul>
+                        <li>Fácil implementación</li>
+                        <li>Alto costo a escala</li>
+                        <li>Dependencia externa</li>
+                    </ul>
+                </div>
+                <div class="finops-card">
+                    <h3>Modelo propio (Azure GPU)</h3>
+                    <p class="price">$0.5 – $1 / hora</p>
+                    <p class="total">100k → $3 – $6</p>
+                    <ul>
+                        <li>Bajo costo a escala</li>
+                        <li>Escalable</li>
+                        <li>Mayor complejidad operativa</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="breakeven-box">
+                <h3>📊 Punto de equilibrio</h3>
+                <p>A partir de <strong>~1,600 requests</strong>, el modelo propio es más económico que la API.</p>
+            </div>
+            <table class="cost-table">
+                <tr><th>Requests</th><th>API (USD)</th><th>Modelo propio (USD)</th></tr>
+                <tr><td>1,000</td><td>$3</td><td>$5</td></tr>
+                <tr><td>10,000</td><td>$30</td><td>$5</td></tr>
+                <tr><td>100,000</td><td>$300</td><td>$5</td></tr>
+            </table>
+            <div class="insight-box">
+                <strong>Insight FinOps:</strong> El costo está dominado por la API externa, no por la infraestructura.
+            </div>
+        </div>
+
+        <!-- Slide 8: Gobierno -->
+        <div class="slide slide-content" data-slide="7">
+            <div class="slide-header"><span class="slide-number">08</span><h2>Gobierno de Datos</h2></div>
+            <div class="riesgos-grid">
+                <div class="riesgo-card privacidad">
+                    <h3>🔒 Privacidad</h3>
+                    <ul>
+                        <li>Datos personales en texto</li>
+                        <li>Exposición información sensible</li>
+                        <li>Uso indebido de datos</li>
+                    </ul>
+                </div>
+                <div class="riesgo-card sesgos">
+                    <h3>⚖️ Sesgos del Modelo</h3>
+                    <ul>
+                        <li>Clasificaciones incorrectas</li>
+                        <li>Sesgo en lenguaje</li>
+                        <li>Decisiones automatizadas</li>
+                    </ul>
+                </div>
+                <div class="riesgo-card dependencia">
+                    <h3>🔗 Dependencia Externa</h3>
+                    <ul>
+                        <li>Envío a API externa (Grok)</li>
+                        <li>Pérdida de control</li>
+                        <li>Riesgos disponibilidad</li>
+                    </ul>
+                </div>
+            </div>
+            <h3 class="section-title">Cumplimiento – Habeas Data (Colombia)</h3>
+            <div class="cumplimiento-grid">
+                <div class="cumplimiento-card">
+                    <h3>📝 Autorización</h3>
+                    <ul>
+                        <li>Consentimiento previo</li>
+                        <li>Finalidad clara</li>
+                    </ul>
+                </div>
+                <div class="cumplimiento-card">
+                    <h3>👤 Derechos del Titular</h3>
+                    <ul>
+                        <li>Acceso, corrección, eliminación</li>
+                        <li>Transparencia</li>
+                    </ul>
+                </div>
+                <div class="cumplimiento-card">
+                    <h3>🔐 Seguridad</h3>
+                    <ul>
+                        <li>Datos en tránsito seguros</li>
+                        <li>Control de acceso</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mitigacion-box">
+                <h3>🛡️ Mitigación</h3>
+                <ul>
+                    <li>Anonimización antes de API</li>
+                    <li>Filtrado PII</li>
+                    <li>Logs sin info personal</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 9: Memoria -->
+        <div class="slide slide-content" data-slide="8">
+            <div class="slide-header"><span class="slide-number">09</span><h2>Memoria y FinOps en la Arquitectura</h2></div>
+            <div class="memoria-status">
+                <h3>📌 Estado Actual</h3>
+                <ul>
+                    <li>Datos en memoria (RAM)</li>
+                    <li>No uso de base de datos vectorial</li>
+                    <li>No generación de embeddings</li>
+                </ul>
+                <p class="costo"><strong>Costo de memoria:</strong> prácticamente nulo</p>
+            </div>
+            <div class="memoria-escenarios">
+                <div class="escenario-card sin-opt">
+                    <h3>Escenario sin optimización</h3>
+                    <ul>
+                        <li>Guardar todos los posts como embeddings</li>
+                        <li>100k posts → 100k embeddings</li>
+                        <li>Alto costo en almacenamiento y consultas</li>
+                    </ul>
+                </div>
+                <div class="escenario-card optimizado">
+                    <h3>Escenario optimizado (FinOps)</h3>
+                    <ul>
+                        <li>Filtrado por engagement (likes, replies)</li>
+                        <li>Uso de métricas ya calculadas</li>
+                        <li>Solo datos relevantes se almacenan</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="impacto-box">
+                <h3>💰 Impacto FinOps</h3>
+                <ul>
+                    <li>Reducción de hasta 90% en almacenamiento</li>
+                    <li>Menor número de consultas</li>
+                    <li>Menor latencia</li>
+                    <li>Escalabilidad controlada</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 10: Demo -->
+        <div class="slide slide-content" data-slide="9">
+            <div class="slide-header"><span class="slide-number">10</span><h2>Demo: Muestreo en Vivo</h2></div>
+            <div class="demo-grid">
+                <div class="demo-card principal">
+                    <span class="demo-bg-icon">🎬</span>
+                    <span class="demo-bg-icon" style="font-size: 80px;">Video aquí</span>
+                    <div class="demo-icon">🎬</div>
+                    <h3>Espacio para Demostración</h3>
+                    <p>Esta slide se completará cuando el desarrollo esté disponible</p>
+                    <div class="placeholder-line"></div>
+                    <div class="placeholder-line short"></div>
+                    <div class="placeholder-line"></div>
+                </div>
+                <div class="demo-card">
+                    <span class="demo-bg-icon">💬</span>
+                    <h3>💬 Chat con el agente</h3>
+                    <p>Interacción directa mediante lenguaje natural</p>
+                </div>
+                <div class="demo-card">
+                    <span class="demo-bg-icon">📊</span>
+                    <h3>📊 Respuestas en tiempo real</h3>
+                    <p>Análisis instantáneo de interacciones</p>
+                </div>
+                <div class="demo-card">
+                    <span class="demo-bg-icon">🔍</span>
+                    <h3>🔍 Consultas en lenguaje natural</h3>
+                    <p>Sin necesidad de SQL o sintaxis compleja</p>
+                </div>
+            </div>
+        </div>
+
+<!-- Slide 11: Contacto -->
+        <div class="slide slide-content slide-final" data-slide="10">
+            <div class="final-hero">
+                <h1 class="final-title">¡Gracias!</h1>
+                <h2 class="final-subtitle">Transforma el Social Listening con IA</h2>
+                <p class="final-cta-text">¿Listo para ver el código?</p>
+                <a href="#" class="final-button">Ver Repositorio →</a>
+            </div>
+            <div class="final-divider"></div>
+            <div class="final-footer">
+                <div class="final-team">
+                    <p class="final-label">Equipo de Desarrollo</p>
+                    <div class="final-team-row">
+                        <div class="final-member"><div class="final-avatar">DH</div><span>David Henao</span></div>
+                        <div class="final-member"><div class="final-avatar">JM</div><span>Juan Manuel Marín</span></div>
+                        <div class="final-member"><div class="final-avatar">JA</div><span>Johan Daniel Aguirre</span></div>
+                        <div class="final-member"><div class="final-avatar">OG</div><span>Óscar Andrés Gómez</span></div>
+                    </div>
+                </div>
+                <div class="final-tech">
+                    <p class="final-label">Tecnologías</p>
+                    <div class="final-pills">
+                        <span>FastMCP</span><span>Go (ReAct)</span><span>Streamlit</span><span>Python</span><span>Ollama</span><span>Parquet</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-counter">
+        <span id="currentSlide">1</span> / <span id="totalSlides">11</span>
+    </div>
+
+    <div class="nav-controls">
+        <button class="nav-btn" id="prevBtn">←</button>
+        <button class="nav-btn" id="nextBtn">→</button>
+    </div>
+
+    <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width: 9.09%"></div>
+    </div>
+
+    <script>
+        const totalSlides = 11;
+        let currentSlide = 0;
+
+        function updateSlide() {
+            const slides = document.querySelectorAll('.slide');
+            slides.forEach(s => s.classList.remove('active'));
+            slides[currentSlide].classList.add('active');
+
+            document.getElementById('currentSlide').textContent = currentSlide + 1;
+            document.getElementById('progressFill').style.width = ((currentSlide + 1) / totalSlides * 100) + '%';
+
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                currentSlide++;
+                updateSlide();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlide();
+            }
+        }
+
+        document.getElementById('nextBtn').addEventListener('click', nextSlide);
+        document.getElementById('prevBtn').addEventListener('click', prevSlide);
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            }
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                prevSlide();
+            }
+        });
+
+        // Init first slide
+        updateSlide();
+    </script>
+</body>
+</html>

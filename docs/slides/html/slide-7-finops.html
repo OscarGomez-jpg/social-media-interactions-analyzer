@@ -1,0 +1,38 @@
+<div class="slide slide-content" data-slide="6">
+    <div class="slide-header"><span class="slide-number">07</span><h2>FinOps – Comparación de Costos</h2></div>
+    <div class="finops-grid">
+        <div class="finops-card">
+            <h3>API (Grok)</h3>
+            <p class="price">$0.002 – $0.005 / request</p>
+            <p class="total">100k → $200 – $500</p>
+            <ul>
+                <li>Fácil implementación</li>
+                <li>Alto costo a escala</li>
+                <li>Dependencia externa</li>
+            </ul>
+        </div>
+        <div class="finops-card">
+            <h3>Modelo propio (Azure GPU)</h3>
+            <p class="price">$0.5 – $1 / hora</p>
+            <p class="total">100k → $3 – $6</p>
+            <ul>
+                <li>Bajo costo a escala</li>
+                <li>Escalable</li>
+                <li>Mayor complejidad operativa</li>
+            </ul>
+        </div>
+    </div>
+    <div class="breakeven-box">
+        <h3>📊 Punto de equilibrio</h3>
+        <p>A partir de <strong>~1,600 requests</strong>, el modelo propio es más económico que la API.</p>
+    </div>
+    <table class="cost-table">
+        <tr><th>Requests</th><th>API (USD)</th><th>Modelo propio (USD)</th></tr>
+        <tr><td>1,000</td><td>$3</td><td>$5</td></tr>
+        <tr><td>10,000</td><td>$30</td><td>$5</td></tr>
+        <tr><td>100,000</td><td>$300</td><td>$5</td></tr>
+    </table>
+    <div class="insight-box">
+        <strong>Insight FinOps:</strong> El costo está dominado por la API externa, no por la infraestructura.
+    </div>
+</div>
