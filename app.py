@@ -110,9 +110,9 @@ def analyze_prompt(prompt: str) -> (str, dict):
     # 2. Resumen (busca palabras clave como "resume", "sentimiento", "clima")
     if any(keyword in prompt_lower for keyword in ["resume", "resumen", "sentimiento", "clima", "tema"]):
         sentiment = None
-        if "positivo" in prompt_lower: sentiment = "positive"
-        elif "negativo" in prompt_lower: sentiment = "negative"
-        elif "neutral" in prompt_lower: sentiment = "neutral"
+        if "positivo" in prompt_lower: sentiment = "POSITIVE"
+        elif "negativo" in prompt_lower: sentiment = "NEGATIVE"
+        elif "neutral" in prompt_lower: sentiment = "NEUTRAL"
         
         params = {"sentiment": sentiment} if sentiment else {}
         return "get_summary", params
@@ -121,14 +121,15 @@ def analyze_prompt(prompt: str) -> (str, dict):
     # SOLUCIÓN: Extraer el número si se especifica, si no, usar 5.
     
     if any(keyword in prompt_lower for keyword in ["m.tricas", "viral", "influencer", "top", "populares"]):
-        limit = 5 # Valor por defecto
+        limit = 5
         metrics_match = re.search(r'(\d+)\s+(posts|influencers|m.tricas)', prompt_lower)
         if metrics_match:
             try:
                 limit = int(metrics_match.group(1))
             except (ValueError, IndexError):
-                pass # Si falla la extracción, se mantiene el valor por defecto
-        return "get_metrics", {"limit": limit}
+                pass
+        query_type = "influencers" if "influencer" in prompt_lower else "posts"
+        return "get_metrics", {"limit": limit, "query_type": query_type}
 
     # Fallback: si no se reconoce, se intenta un resumen general
     return "get_summary", {}
@@ -142,19 +143,21 @@ def display_result(result: dict):
 
     # Formato para Métricas
     if "viral_posts" in result or "top_influencers" in result:
-        st.markdown("##### 🚀 Posts Más Virales")
-        viral_df = pd.DataFrame(result.get("viral_posts", []))
-        if not viral_df.empty:
-            st.dataframe(viral_df, width="stretch")
-        else:
-            st.markdown("_No se encontraron posts virales._")
+        if "viral_posts" in result:
+            st.markdown("##### 🚀 Posts Más Virales")
+            viral_df = pd.DataFrame(result["viral_posts"])
+            if not viral_df.empty:
+                st.dataframe(viral_df, width="stretch")
+            else:
+                st.markdown("_No se encontraron posts virales._")
 
-        st.markdown("##### 👑 Top Influencers")
-        influencers_df = pd.DataFrame(result.get("top_influencers", []))
-        if not influencers_df.empty:
-            st.dataframe(influencers_df, width="stretch")
-        else:
-            st.markdown("_No se encontraron influencers._")
+        if "top_influencers" in result:
+            st.markdown("##### 👑 Top Influencers")
+            influencers_df = pd.DataFrame(result["top_influencers"])
+            if not influencers_df.empty:
+                st.dataframe(influencers_df, width="stretch")
+            else:
+                st.markdown("_No se encontraron influencers._")
 
     # Formato para Resumen
     elif "summary" in result:
@@ -178,31 +181,27 @@ def display_result(result: dict):
 
 @st.dialog("Preguntas de prueba del sistema", width="large")
 def show_test_questions():
-    st.markdown("""
-Usa estas preguntas para verificar que cada MCP funciona correctamente.
-Cópialas tal cual en el chat para obtener resultados reproducibles.
-""")
+    st.markdown("Copia estas preguntas tal cual en el chat. Cada una activa el MCP indicado.")
 
-    st.markdown("#### 📊 `get_metrics` — Posts virales e influencers")
-    st.code("¿Cuáles son los posts con más impacto?", language=None)
+    st.markdown("#### 📊 `get_metrics` — Posts virales")
+    st.code("¿Cuáles son los posts más virales?", language=None)
     st.code("Dame los 3 posts más populares", language=None)
+    st.markdown("#### 📊 `get_metrics` — Influencers")
+    st.code("Dame los 3 influencers más importantes", language=None)
+    st.code("¿Cuáles son los top 5 influencers?", language=None)
 
-    st.markdown("#### 📝 `get_summary` — Resumen cualitativo")
-    st.code("Dame un resumen general sobre los posts actuales", language=None)
-    st.code("¿Qué dicen los posts positivos?", language=None)
-    st.code("¿Cuál es el clima de los posts negativos?", language=None)
+    st.markdown("#### 📝 `get_summary` — Resumen con Ollama")
+    st.code("Dame un resumen de los posts actuales", language=None)
+    st.code("Dame un resumen de los posts positivos", language=None)
+    st.code("¿Cuál es el clima de los comentarios negativos?", language=None)
 
     st.markdown("#### 🌳 `analyze_propagation` — Propagación en árbol")
     st.code("Analiza la propagación del post tikapi_7520805329748151557", language=None)
-    st.code("Muéstrame la propagación del post tikapi_7520430294948793606", language=None)
-    st.code("Cual es la propagación del post c6adb4630994bdee807d387382d526bc", language=None)
+    st.caption("↑ Hilo más grande del dataset: 2 920 respuestas")
+    st.code("Analiza la propagación del post c6adb4630994bdee807d387382d526bc", language=None)
+    st.caption("↑ Post sin hijos: alcance esperado = 1")
     st.code("Analiza la propagación del post xyz_no_existe_123", language=None)
-
-    st.markdown("#### 🚫 Sin herramientas")
-    st.code("Hola, ¿cómo estás?", language=None)
-
-    st.divider()
-    st.caption("Resultados esperados documentados en `test_plan.md`")
+    st.caption("↑ ID inexistente: debe devolver error controlado")
 
 
 # --- Interfaz de Usuario Principal ---

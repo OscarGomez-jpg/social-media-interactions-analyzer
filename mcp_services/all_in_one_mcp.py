@@ -65,33 +65,37 @@ def _ollama_base() -> str:
 
 # --- MÓDULO 1: MÉTRICAS ---
 @mcp.tool()
-def get_metrics(limit: int = 5) -> dict:
-    """Identifica posts virales y usuarios influyentes basados en likes y engagement."""
-    print(f"📊 [MCP] Llamada a get_metrics(limit={limit})")
+def get_metrics(limit: int = 5, query_type: str = "posts") -> dict:
+    """Identifica posts virales (query_type='posts') o usuarios influyentes (query_type='influencers')."""
+    print(f"📊 [MCP] Llamada a get_metrics(limit={limit}, query_type={query_type})")
     df = load_data()
     if df.empty:
         return {"error": "No data available"}
 
     df["liked"] = pd.to_numeric(df["liked"], errors="coerce").fillna(0)
-    viral_posts = df.sort_values(by="liked", ascending=False).head(limit)
-    print(f"✅ [MCP] get_metrics: Encontrados {len(viral_posts)} posts virales")
 
-    if "sourceName" in df.columns:
-        liked_numeric = pd.to_numeric(df["liked"], errors="coerce").fillna(0)
+    if query_type == "influencers":
+        if "sourceName" not in df.columns:
+            return {"top_influencers": []}
+        source_df = df[
+            df["sourceName"].notna() & (df["sourceName"].astype(str).str.strip() != "")
+        ]
         influencers = (
-            df.assign(liked_num=liked_numeric)
+            source_df.assign(liked_num=source_df["liked"])
             .groupby("sourceName")["liked_num"]
             .sum()
             .sort_values(ascending=False)
             .head(limit)
         )
         influencer_list = [{"user": k, "total_likes": int(v)} for k, v in influencers.items()]
-    else:
-        influencer_list = []
+        print(f"✅ [MCP] get_metrics: {len(influencer_list)} influencers")
+        return {"top_influencers": influencer_list}
 
+    # default: posts
+    viral_posts = df.sort_values(by="liked", ascending=False).head(limit)
+    print(f"✅ [MCP] get_metrics: {len(viral_posts)} posts virales")
     return {
         "viral_posts": viral_posts[["id", "text", "liked", "engagementRate"]].to_dict(orient="records"),
-        "top_influencers": influencer_list,
     }
 
 
