@@ -60,17 +60,17 @@
             <div class="solution-flow">
                 <div class="flow-step"><div class="step-icon">👤</div><h4>Usuario</h4><p>Lenguaje Natural</p></div>
                 <div class="flow-arrow">→</div>
-                <div class="flow-step highlight"><div class="step-icon">🤖</div><h4>Agente</h4><p>Orquestador + LangGraph</p></div>
+                <div class="flow-step highlight"><div class="step-icon">🤖</div><h4>Agente Go</h4><p>ReAct + Caché SHA-256</p></div>
                 <div class="flow-arrow">→</div>
-                <div class="flow-step"><div class="step-icon">🔧</div><h4>MCPs</h4><p>Tool Calling</p></div>
+                <div class="flow-step"><div class="step-icon">🔧</div><h4>MCPs</h4><p>FastMCP · stdio</p></div>
                 <div class="flow-arrow">→</div>
-                <div class="flow-step"><div class="step-icon">📊</div><h4>Datos</h4><p>JSON / CSV</p></div>
+                <div class="flow-step"><div class="step-icon">📊</div><h4>Datos</h4><p>Parquet</p></div>
             </div>
             <div class="tech-tags">
                 <span class="tag">FastMCP</span>
-                <span class="tag">LangGraph</span>
+                <span class="tag">Go (ReAct)</span>
                 <span class="tag">Streamlit</span>
-                <span class="tag">LLM Integration</span>
+                <span class="tag">Ollama / GPT-4o-mini</span>
             </div>
         </div>
 
@@ -82,23 +82,23 @@
                     <div class="layer-label">PRESENTATION</div>
                     <div class="arch-box user">👤 Usuario<br><span>Streamlit / Terminal</span></div>
                 </div>
-                <div class="arch-connector">↓ Tool Calling</div>
+                <div class="arch-connector">↓ HTTP POST /query</div>
                 <div class="arch-layer">
                     <div class="layer-label">ORCHESTRATION</div>
-                    <div class="arch-box agent">🤖 Agente LangGraph<br><span>Decisiones + Estado</span></div>
-                    <div class="arch-box cache">⚡ Cache<br><span>Redis / Memoria</span></div>
+                    <div class="arch-box agent">🤖 Agente Go (ReAct)<br><span>Tool Calling + Estado</span></div>
+                    <div class="arch-box cache">⚡ Caché SHA-256<br><span>In-memory · doble capa</span></div>
                 </div>
-                <div class="arch-connector">↓ REST API</div>
+                <div class="arch-connector">↓ JSON-RPC 2.0 · stdio</div>
                 <div class="arch-layer">
-                    <div class="layer-label">MCP SERVICES</div>
-                    <div class="arch-box mcp">📝 Resumen</div>
-                    <div class="arch-box mcp">📊 Métricas</div>
-                    <div class="arch-box mcp obligatorio">🚀 Propagación</div>
+                    <div class="layer-label">MCP SERVICES (Python · FastMCP)</div>
+                    <div class="arch-box mcp">📝 summary_mcp<br><span>:8003</span></div>
+                    <div class="arch-box mcp">📊 metrics_mcp<br><span>:8001</span></div>
+                    <div class="arch-box mcp obligatorio">🚀 propagation_mcp<br><span>:8002</span></div>
                 </div>
                 <div class="arch-connector">↓</div>
                 <div class="arch-layer">
                     <div class="layer-label">DATA</div>
-                    <div class="arch-box data">📁 Dataset Social<br><span>JSON / CSV</span></div>
+                    <div class="arch-box data">📁 db/data.parquet<br><span>Pandas · PyArrow</span></div>
                 </div>
             </div>
         </div>
@@ -124,11 +124,11 @@
                     <div class="mcp-header"><span class="mcp-num">02</span><span class="mcp-type">Tradicional</span></div>
                     <h3>Análisis de Métricas</h3>
                     <p class="mcp-desc">Datos duros sin IA</p>
-                    <div class="mcp-tech">Pandas</div>
+                    <div class="mcp-tech">Pandas · :8001</div>
                     <ul class="mcp-features">
-                        <li>Top influencers</li>
-                        <li>Posts virales</li>
-                        <li>Métricas aggregate</li>
+                        <li>Total posts · likes</li>
+                        <li>Top fuentes por reach</li>
+                        <li>Engagement por sentimiento</li>
                     </ul>
                 </div>
                 <div class="mcp-card obligatorio">
@@ -136,11 +136,11 @@
                     <div class="mcp-header"><span class="mcp-num">!</span><span class="mcp-type">OBLIGATORIO</span></div>
                     <h3>Propagación</h3>
                     <p class="mcp-desc">Análisis de impacto</p>
-                    <div class="mcp-tech">Graph + Pandas</div>
+                    <div class="mcp-tech">Pandas · BFS · :8002</div>
                     <ul class="mcp-features">
-                        <li>Estructura de árbol</li>
-                        <li>Alcance cumulativo</li>
-                        <li>Cadena de replicación</li>
+                        <li>Árbol parentId → replies</li>
+                        <li>Alcance acumulativo (BFS)</li>
+                        <li>Top posts por reach</li>
                     </ul>
                 </div>
             </div>
@@ -168,27 +168,27 @@
                     <div class="diff-icon">⚡</div>
                     <h3>Optimización Tiempo</h3>
                     <ul>
-                        <li><span class="check">✓</span> FastMCP para implementación rápida</li>
-                        <li><span class="check">✓</span> LangGraph (grafo lineal simple)</li>
-                        <li><span class="check">✓</span> Pandas para métricas (no reinventar)</li>
-                        <li><span class="check">✓</span> Streamlit para interfaz</li>
+                        <li><span class="check">✓</span> FastMCP para implementación rápida de herramientas</li>
+                        <li><span class="check">✓</span> Lógica ReAct en Go (sin framework extra)</li>
+                        <li><span class="check">✓</span> Pandas para métricas (no reinventar la rueda)</li>
+                        <li><span class="check">✓</span> Streamlit para interfaz en minutos</li>
                     </ul>
                 </div>
             </div>
             <div class="strategy-box">
-                <h4>📋 Hoja de Ruta Sugerida</h4>
+                <h4>✅ Hoja de Ruta — Completada</h4>
                 <div class="strategy-items" style="grid-template-columns: repeat(2, 1fr);">
                     <div class="strategy-item" style="border-left: 4px solid #FF9800;">
-                        <span class="phase">Fase 1: Data</span><span>Identificar jerarquía post_id vs reply_to</span>
+                        <span class="phase">✅ Fase 1: Data</span><span>db/data.parquet · jerarquía parentId → replies</span>
                     </div>
                     <div class="strategy-item" style="border-left: 4px solid #4CAF50;">
-                        <span class="phase">Fase 2: MCPs</span><span>Endpoints con FastMCP</span>
+                        <span class="phase">✅ Fase 2: MCPs</span><span>metrics · propagation · summary (FastMCP)</span>
                     </div>
                     <div class="strategy-item" style="border-left: 4px solid #AB47BC;">
-                        <span class="phase">Fase 3: Agente</span><span>System Prompt efectivo</span>
+                        <span class="phase">✅ Fase 3: Agente Go</span><span>ReAct + caché SHA-256 + cliente JSON-RPC</span>
                     </div>
                     <div class="strategy-item" style="border-left: 4px solid #42A5F5;">
-                        <span class="phase">Fase 4: Demo</span><span>Streamlit</span>
+                        <span class="phase">🎬 Fase 4: Demo</span><span>Streamlit live · métricas desde MCP</span>
                     </div>
                 </div>
             </div>
@@ -392,7 +392,7 @@
                 <div class="final-tech">
                     <p class="final-label">Tecnologías</p>
                     <div class="final-pills">
-                        <span>FastMCP</span><span>LangGraph</span><span>Streamlit</span><span>Python</span><span>MCP</span>
+                        <span>FastMCP</span><span>Go (ReAct)</span><span>Streamlit</span><span>Python</span><span>Ollama</span><span>Parquet</span>
                     </div>
                 </div>
             </div>
