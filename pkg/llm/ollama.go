@@ -44,28 +44,31 @@ type ollamaResponse struct {
 	Response string `json:"response"`
 }
 
-// GetToolCalls determines which tools to call based on user query
-func (oc *OllamaClient) GetToolCalls(ctx context.Context, userQuery string) ([]ToolCall, error) {
-	prompt := fmt.Sprintf(`You are a social media analysis assistant. Based on the user query, determine which tools to call.
+// GetRawResponse returns the raw completion from Ollama
+func (oc *OllamaClient) GetRawResponse(ctx context.Context, userQuery string) (string, error) {
+	prompt := fmt.Sprintf(`Eres un asistente de análisis de redes sociales experto. Debes seguir el patrón ReAct (Razonamiento + Acción).
+Analiza la consulta del usuario y decide qué herramientas usar.
 
-Available tools:
-1. get_conversation_summary - Generates an executive summary of social media conversations. Parameters: num_posts (int, 1-50)
-2. get_social_metrics - Analyzes social media engagement metrics. Parameters: metric_type (string, "top_engagement" or "user_activity")
-3. analyze_propagation - Analyzes how a post propagates. Parameters: post_id (int)
+HERRAMIENTAS DISPONIBLES:
+1. get_metrics(limit: int): Identifica posts virales (más likes) y usuarios influyentes. Úsala para preguntas sobre "más impacto", "popularidad" o "quién es quién".
+2. get_summary(sentiment: string): Sintetiza temas y clima de conversación. Úsala para preguntas sobre "qué dicen", "resumen" o "clima".
+3. analyze_propagation(post_id: string): (OBLIGATORIO para impacto mediático profundo) Calcula el alcance acumulado usando lógica de árbol [Reach = sum(Likes + Replies)].
 
-User query: %s
+INSTRUCCIONES DE RAZONAMIENTO:
+- Primero escribe "THOUGHT: <tu razonamiento y plan de pasos>".
+- Luego escribe la llamada a la herramienta en formato JSON.
 
-Respond ONLY with valid JSON array of tool calls in this format:
-[{"name": "tool_name", "args": {"param": value}}]
+CONSULTA DEL USUARIO: %s
 
-If no tools are needed, respond with: []`, userQuery)
+Responde con el razonamiento y LUEGO un array JSON de llamadas:
+THOUGHT: ...
+[{"name": "tool_name", "args": {"param": value}}]`, userQuery)
 
-	resp, err := oc.callOllama(ctx, prompt)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get response from Ollama: %w", err)
-	}
+	return oc.callOllama(ctx, prompt)
+}
 
-	// Parse tool calls from response
+// ParseToolCalls extracts tool calls from a raw response string
+func (oc *OllamaClient) ParseToolCalls(resp string) ([]ToolCall, error) {
 	var toolCalls []ToolCall
 
 	// Try to extract JSON array from response

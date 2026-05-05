@@ -3,4 +3,4 @@ pandas
 pyarrow
 openai
 plotly
-streamlit
+streamlitrequests

@@ -12,12 +12,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/joho/godotenv"
 	"social-media-analyzer/pkg/data"
 	"social-media-analyzer/pkg/llm"
 	"social-media-analyzer/pkg/mcp"
 	"social-media-analyzer/pkg/models"
 	"social-media-analyzer/pkg/tools"
+
+	"github.com/joho/godotenv"
 )
 
 // Agent orchestrates tool execution and LLM integration
@@ -25,15 +26,14 @@ type Agent struct {
 	tools        *tools.Tools
 	ollamaClient *llm.OllamaClient
 	mcpClient    *mcp.MCPClient
-	queryCache  map[string]string
-	cacheMu     sync.RWMutex
-	backend     string // "claude" or "ollama"
-	useMCP      bool
+	queryCache   map[string]string
+	cacheMu      sync.RWMutex
+	backend      string // "claude" or "ollama"
+	useMCP       bool
 }
 
 // NewAgent creates a new agent
 func NewAgent(backend string, useMCP bool) *Agent {
-
 	ollamaClient := llm.NewOllamaClient(
 		"http://localhost:11434",
 		"gemma4:e2b",
@@ -47,10 +47,10 @@ func NewAgent(backend string, useMCP bool) *Agent {
 	return &Agent{
 		tools:        tools.NewTools(),
 		ollamaClient: ollamaClient,
-		mcpClient:   mcpClient,
-		queryCache: make(map[string]string),
-		backend:    backend,
-		useMCP:     useMCP,
+		mcpClient:    mcpClient,
+		queryCache:   make(map[string]string),
+		backend:      backend,
+		useMCP:       useMCP,
 	}
 }
 
@@ -60,9 +60,8 @@ func hashQuery(q string) string {
 	return hex.EncodeToString(h.Sum(nil))[:16]
 }
 
-// ProcessQuery processes a user query with concurrent tool execution
 func (a *Agent) ProcessQuery(query string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
 	defer cancel()
 
 	log.Printf("🔍 Analyzing query: %s\n", query)
@@ -76,14 +75,30 @@ func (a *Agent) ProcessQuery(query string) (string, error) {
 	}
 	a.cacheMu.RUnlock()
 
-	// Get tool calls from LLM
+	// Get tool calls and reasoning from LLM
 	var toolCalls []llm.ToolCall
 	var err error
 
-	toolCalls, err = a.ollamaClient.GetToolCalls(ctx, query)
-
+	// We'll call a new method that returns the raw response to extract Thought
+	rawResp, err := a.ollamaClient.GetRawResponse(ctx, query)
 	if err != nil {
-		return "", fmt.Errorf("failed to get tool calls: %w", err)
+		return "", fmt.Errorf("failed to get response from Ollama: %w", err)
+	}
+
+	// Print Thought if present
+	if thoughtIdx := strings.Index(rawResp, "THOUGHT:"); thoughtIdx != -1 {
+		endThought := strings.Index(rawResp[thoughtIdx:], "\n")
+		if endThought == -1 {
+			endThought = strings.Index(rawResp[thoughtIdx:], "[")
+		}
+		if endThought != -1 {
+			fmt.Printf("\n🧠 %s\n", strings.TrimSpace(rawResp[thoughtIdx:thoughtIdx+endThought]))
+		}
+	}
+
+	toolCalls, err = a.ollamaClient.ParseToolCalls(rawResp)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse tool calls: %w", err)
 	}
 
 	if len(toolCalls) == 0 {
@@ -103,7 +118,6 @@ func (a *Agent) ProcessQuery(query string) (string, error) {
 
 	// Generate final response
 	finalResponse, err := a.ollamaClient.GenerateFinalResponse(ctx, query, resultsMap)
-
 	if err != nil {
 		return "", fmt.Errorf("failed to generate response: %w", err)
 	}
@@ -139,37 +153,6 @@ func (a *Agent) executeToolsConcurrently(toolCalls []llm.ToolCall) []models.Tool
 	return results
 }
 
-// determineMCPService determines which MCP service to use based on the query
-func (a *Agent) determineMCPService(query string) string {
-	queryLower := strings.ToLower(query)
-	
-	if strings.Contains(queryLower, "metric") || 
-	   strings.Contains(queryLower, "engagement") ||
-	   strings.Contains(queryLower, " likes ") ||
-	   strings.Contains(queryLower, "rate") ||
-	   strings.Contains(queryLower, "positiv") ||
-	   strings.Contains(queryLower, "negativ") {
-		return "metrics"
-	}
-	
-	if strings.Contains(queryLower, "propagat") ||
-	   strings.Contains(queryLower, "reply") ||
-	   strings.Contains(queryLower, "thread") ||
-	   strings.Contains(queryLower, "reach") ||
-	   strings.Contains(queryLower, "depth") {
-		return "propagation"
-	}
-	
-	if strings.Contains(queryLower, "summar") ||
-	   strings.Contains(queryLower, "topic") ||
-	   strings.Contains(queryLower, "theme") ||
-	   strings.Contains(queryLower, "keyword") {
-		return "summary"
-	}
-	
-	return "metrics"
-}
-
 // executeTool executes a single tool
 func (a *Agent) executeTool(toolCall llm.ToolCall) models.ToolResult {
 	result := models.ToolResult{
@@ -181,30 +164,18 @@ func (a *Agent) executeTool(toolCall llm.ToolCall) models.ToolResult {
 		return a.executeMCPTool(toolCall)
 	}
 
-	// Otherwise use local tools
+	// Local fallback for testing (mock data)
 	switch toolCall.Name {
-	case "get_conversation_summary":
-		numPosts := 10
-		if np, ok := toolCall.Args["num_posts"].(float64); ok {
-			numPosts = int(np)
-		}
-		result.Result = a.tools.GetConversationSummary(numPosts)
+	case "get_summary":
+		result.Result = a.tools.GetConversationSummary(10)
 		result.Status = "success"
 
-	case "get_social_metrics":
-		metricType := "top_engagement"
-		if mt, ok := toolCall.Args["metric_type"].(string); ok {
-			metricType = mt
-		}
-		result.Result = a.tools.GetSocialMetrics(metricType)
+	case "get_metrics":
+		result.Result = a.tools.GetSocialMetrics("top_engagement")
 		result.Status = "success"
 
 	case "analyze_propagation":
-		postID := int64(1)
-		if pid, ok := toolCall.Args["post_id"].(float64); ok {
-			postID = int64(pid)
-		}
-		result.Result = a.tools.AnalyzePropagation(postID)
+		result.Result = a.tools.AnalyzePropagation(1)
 		result.Status = "success"
 
 	default:
@@ -215,32 +186,19 @@ func (a *Agent) executeTool(toolCall llm.ToolCall) models.ToolResult {
 	return result
 }
 
-// executeMCPTool executes a tool via MCP client
+// executeMCPTool executes a tool via the unified MCP client
 func (a *Agent) executeMCPTool(toolCall llm.ToolCall) models.ToolResult {
 	result := models.ToolResult{
 		ToolName: toolCall.Name,
 	}
 
-	mcpService := a.determineMCPService(toolCall.Name)
 	params := make(map[string]interface{})
-	
 	for k, v := range toolCall.Args {
 		params[k] = v
 	}
 
-	var mcpResult interface{}
-	var err error
-
-	switch mcpService {
-	case "metrics":
-		mcpResult, err = a.mcpClient.CallMetrics(toolCall.Name, params)
-	case "propagation":
-		mcpResult, err = a.mcpClient.CallPropagation(toolCall.Name, params)
-	case "summary":
-		mcpResult, err = a.mcpClient.CallSummary(toolCall.Name, params)
-	default:
-		err = fmt.Errorf("unknown MCP service: %s", mcpService)
-	}
+	// All tools now point to the unified Metrics endpoint (port 8001)
+	mcpResult, err := a.mcpClient.CallMetrics(toolCall.Name, params)
 
 	if err != nil {
 		result.Status = "error"

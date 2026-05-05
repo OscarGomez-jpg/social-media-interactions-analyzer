@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -18,7 +19,7 @@ type MCPClient struct {
 	propagationURL string
 	summaryURL     string
 	httpClient     *http.Client
-	cache          map[string]interface{}
+	cache          map[string]any
 	mu             sync.RWMutex
 }
 
@@ -51,33 +52,33 @@ func (e *MCPError) Error() string {
 // NewMCPClient creates a new MCPClient with an explicit HTTP timeout.
 func NewMCPClient() *MCPClient {
 	return &MCPClient{
-		metricsURL:     "http://localhost:8001",
-		propagationURL: "http://localhost:8002",
-		summaryURL:     "http://localhost:8003",
+		metricsURL:     "http://localhost:8001/mcp",
+		propagationURL: "http://localhost:8001/mcp",
+		summaryURL:     "http://localhost:8001/mcp",
 		httpClient: &http.Client{
 			Timeout: defaultTimeout,
 		},
-		cache: make(map[string]interface{}),
+		cache: make(map[string]any),
 	}
 }
 
 // CallMetrics invokes a tool on the Metrics MCP service.
-func (c *MCPClient) CallMetrics(method string, params map[string]interface{}) (interface{}, error) {
+func (c *MCPClient) CallMetrics(method string, params map[string]any) (any, error) {
 	return c.call(context.Background(), c.metricsURL, method, params)
 }
 
 // CallPropagation invokes a tool on the Propagation MCP service.
-func (c *MCPClient) CallPropagation(method string, params map[string]interface{}) (interface{}, error) {
+func (c *MCPClient) CallPropagation(method string, params map[string]any) (any, error) {
 	return c.call(context.Background(), c.propagationURL, method, params)
 }
 
 // CallSummary invokes a tool on the Summary MCP service.
-func (c *MCPClient) CallSummary(method string, params map[string]interface{}) (interface{}, error) {
+func (c *MCPClient) CallSummary(method string, params map[string]any) (any, error) {
 	return c.call(context.Background(), c.summaryURL, method, params)
 }
 
 // call performs a JSON-RPC 2.0 HTTP POST request with context and caching.
-func (c *MCPClient) call(ctx context.Context, baseURL, method string, params map[string]interface{}) (interface{}, error) {
+func (c *MCPClient) call(ctx context.Context, baseURL, method string, params map[string]any) (any, error) {
 	cacheKey := fmt.Sprintf("%s:%s:%v", baseURL, method, params)
 
 	c.mu.RLock()
@@ -109,12 +110,18 @@ func (c *MCPClient) call(ctx context.Context, baseURL, method string, params map
 		return nil, fmt.Errorf("mcpclient: create request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Accept", "application/json")
 
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("mcpclient: http call to %s: %w", baseURL, err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("mcpclient: server returned status %d: %s", resp.StatusCode, string(body))
+	}
 
 	var mcpResp MCPResponse
 	if err := json.NewDecoder(resp.Body).Decode(&mcpResp); err != nil {
@@ -125,7 +132,7 @@ func (c *MCPClient) call(ctx context.Context, baseURL, method string, params map
 		return nil, mcpResp.Error
 	}
 
-	var result interface{}
+	var result any
 	if len(mcpResp.Result) > 0 {
 		if err := json.Unmarshal(mcpResp.Result, &result); err != nil {
 			return nil, fmt.Errorf("mcpclient: unmarshal result: %w", err)
@@ -140,7 +147,7 @@ func (c *MCPClient) call(ctx context.Context, baseURL, method string, params map
 }
 
 // GetCached returns a cached value by key.
-func (c *MCPClient) GetCached(key string) (interface{}, bool) {
+func (c *MCPClient) GetCached(key string) (any, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	val, ok := c.cache[key]
@@ -151,5 +158,6 @@ func (c *MCPClient) GetCached(key string) (interface{}, bool) {
 func (c *MCPClient) ClearCache() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.cache = make(map[string]interface{})
+	c.cache = make(map[string]any)
 }
+
