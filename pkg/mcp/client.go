@@ -1,12 +1,14 @@
 package mcp
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -47,6 +49,15 @@ type MCPError struct {
 
 func (e *MCPError) Error() string {
 	return fmt.Sprintf("rpc error %d: %s", e.Code, e.Message)
+}
+
+// mcpContentResult is the tools/call envelope FastMCP wraps results in.
+type mcpContentResult struct {
+	Content []struct {
+		Type string `json:"type"`
+		Text string `json:"text"`
+	} `json:"content"`
+	IsError bool `json:"isError"`
 }
 
 // NewMCPClient creates a new MCPClient with an explicit HTTP timeout.
@@ -93,10 +104,21 @@ func (c *MCPClient) call(ctx context.Context, baseURL, method string, params map
 		return nil, fmt.Errorf("mcpclient: marshal params: %w", err)
 	}
 
+	// MCP protocol requires tools/call with name and arguments as a JSON object.
+	mcpParams := map[string]any{
+		"name":      method,
+		"arguments": json.RawMessage(paramBytes),
+	}
+
+	callPayload, err := json.Marshal(mcpParams)
+	if err != nil {
+		return nil, fmt.Errorf("mcpclient: marshal call params: %w", err)
+	}
+
 	reqPayload := MCPRequest{
 		JsonRPC: "2.0",
-		Method:  method,
-		Params:  paramBytes,
+		Method:  "tools/call",
+		Params:  callPayload,
 		ID:      1,
 	}
 
@@ -110,7 +132,9 @@ func (c *MCPClient) call(ctx context.Context, baseURL, method string, params map
 		return nil, fmt.Errorf("mcpclient: create request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Accept", "application/json")
+	// FastMCP requires text/event-stream; include application/json so it can
+	// fall back to plain JSON if supported.
+	httpReq.Header.Set("Accept", "application/json, text/event-stream")
 
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
@@ -118,13 +142,17 @@ func (c *MCPClient) call(ctx context.Context, baseURL, method string, params map
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("mcpclient: server returned status %d: %s", resp.StatusCode, string(body))
+	rawBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("mcpclient: read body: %w", err)
 	}
 
-	var mcpResp MCPResponse
-	if err := json.NewDecoder(resp.Body).Decode(&mcpResp); err != nil {
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("mcpclient: server returned status %d: %s", resp.StatusCode, string(rawBody))
+	}
+
+	mcpResp, err := decodeMCPResponse(rawBody)
+	if err != nil {
 		return nil, fmt.Errorf("mcpclient: decode response: %w", err)
 	}
 
@@ -132,11 +160,9 @@ func (c *MCPClient) call(ctx context.Context, baseURL, method string, params map
 		return nil, mcpResp.Error
 	}
 
-	var result any
-	if len(mcpResp.Result) > 0 {
-		if err := json.Unmarshal(mcpResp.Result, &result); err != nil {
-			return nil, fmt.Errorf("mcpclient: unmarshal result: %w", err)
-		}
+	result, err := unwrapMCPResult(mcpResp.Result)
+	if err != nil {
+		return nil, err
 	}
 
 	c.mu.Lock()
@@ -144,6 +170,67 @@ func (c *MCPClient) call(ctx context.Context, baseURL, method string, params map
 	c.mu.Unlock()
 
 	return result, nil
+}
+
+// decodeMCPResponse parses a raw HTTP body as either plain JSON-RPC or SSE.
+func decodeMCPResponse(raw []byte) (*MCPResponse, error) {
+	// Try plain JSON first.
+	var resp MCPResponse
+	if err := json.Unmarshal(raw, &resp); err == nil {
+		return &resp, nil
+	}
+
+	// Fall back to SSE: look for lines starting with "data: ".
+	scanner := bufio.NewScanner(bytes.NewReader(raw))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+		jsonData := strings.TrimPrefix(line, "data: ")
+		if jsonData == "[DONE]" {
+			continue
+		}
+		var sseResp MCPResponse
+		if err := json.Unmarshal([]byte(jsonData), &sseResp); err == nil {
+			return &sseResp, nil
+		}
+	}
+
+	return nil, fmt.Errorf("could not parse body as JSON or SSE: %q", truncate(string(raw), 200))
+}
+
+// unwrapMCPResult extracts the actual tool payload from the MCP tools/call
+// envelope: {"content":[{"type":"text","text":"..."}],"isError":false}.
+func unwrapMCPResult(raw json.RawMessage) (any, error) {
+	if len(raw) == 0 {
+		return nil, nil
+	}
+
+	var envelope mcpContentResult
+	if err := json.Unmarshal(raw, &envelope); err == nil && len(envelope.Content) > 0 {
+		text := envelope.Content[0].Text
+		// The text field itself is a JSON-encoded value — parse it.
+		var inner any
+		if err := json.Unmarshal([]byte(text), &inner); err == nil {
+			return inner, nil
+		}
+		return text, nil
+	}
+
+	// Fallback: return raw result as-is.
+	var result any
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return nil, fmt.Errorf("mcpclient: unmarshal result: %w", err)
+	}
+	return result, nil
+}
+
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "..."
 }
 
 // GetCached returns a cached value by key.
@@ -160,4 +247,3 @@ func (c *MCPClient) ClearCache() {
 	defer c.mu.Unlock()
 	c.cache = make(map[string]any)
 }
-

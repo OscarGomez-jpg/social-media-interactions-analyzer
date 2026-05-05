@@ -47,12 +47,14 @@ def get_metrics(limit: int = 5) -> dict:
         return {"error": "No data available"}
     
     # Posts virales
+    df["liked"] = pd.to_numeric(df["liked"], errors="coerce").fillna(0)
     viral_posts = df.sort_values(by="liked", ascending=False).head(limit)
     print(f"✅ [MCP] get_metrics: Encontrados {len(viral_posts)} posts virales")
     
     # Usuarios influyentes (por suma de likes en sus posts)
     if "sourceName" in df.columns:
-        influencers = df.groupby("sourceName")["liked"].sum().sort_values(ascending=False).head(limit)
+        liked_numeric = pd.to_numeric(df["liked"], errors="coerce").fillna(0)
+        influencers = df.assign(liked_num=liked_numeric).groupby("sourceName")["liked_num"].sum().sort_values(ascending=False).head(limit)
         influencer_list = [{"user": k, "total_likes": int(v)} for k, v in influencers.items()]
     else:
         influencer_list = []
@@ -157,4 +159,4 @@ def analyze_propagation(post_id: str) -> dict:
     }
 
 if __name__ == "__main__":
-    mcp.run(transport="http", port=8001)
+	mcp.run(transport="http", port=8001, stateless_http=True)
