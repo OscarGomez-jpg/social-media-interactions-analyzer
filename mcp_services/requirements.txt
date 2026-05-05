@@ -2,3 +2,5 @@ fastmcp
 pandas
 pyarrow
 openai
+plotly
+streamlit

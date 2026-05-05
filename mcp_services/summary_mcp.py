@@ -57,25 +57,35 @@ def get_posts_by_keyword(keyword: str, limit: int = 50) -> list:
     return [clean_text(str(row.get("text", ""))) for _, row in filtered.iterrows() if pd.notna(row.get("text"))]
 
 @mcp.tool()
-def summarize_posts_by_sentiment(sentiment: str = "positive") -> str:
-    """Summarize thematic topics from posts by sentiment using LLM."""
+def summarize_posts_by_sentiment(sentiment: str = "positive") -> dict:
+    """Summarize thematic topics from posts by sentiment using LLM.
+
+    Returns a structured dict so callers can always distinguish a real
+    summary from an error condition:
+      {"available": True,  "summary": "..."}
+      {"available": False, "error": "reason"}
+    """
     df = load_data()
     if "sentiment" not in df.columns:
-        return "No sentiment data available"
-    
+        return {"available": False, "error": "No sentiment column in dataset"}
+
     client = get_client()
     if not client:
-        return "OPENAI_API_KEY not set - LLM summarization unavailable"
-    
+        return {"available": False, "error": "OPENAI_API_KEY is not configured"}
+
     filtered = df[df["sentiment"] == sentiment].head(30)
-    texts = [clean_text(str(row.get("text", ""))) for _, row in filtered.iterrows() if pd.notna(row.get("text"))]
-    
+    texts = [
+        clean_text(str(row.get("text", "")))
+        for _, row in filtered.iterrows()
+        if pd.notna(row.get("text"))
+    ]
+
     if not texts:
-        return f"No posts found with sentiment: {sentiment}"
-    
+        return {"available": False, "error": f"No posts found with sentiment: {sentiment}"}
+
     combined = "\n\n".join([f"- {t[:300]}" for t in texts[:15]])
-    
-    prompt = f"""Analyze these social media posts and identify the main themes and topics being discussed. 
+
+    prompt = f"""Analyze these social media posts and identify the main themes and topics being discussed.
 Provide a brief summary (2-3 sentences) of what people are saying:
 
 {combined}
@@ -86,11 +96,11 @@ Summary:"""
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=200
+            max_tokens=200,
         )
-        return response.choices[0].message.content
+        return {"available": True, "summary": response.choices[0].message.content}
     except Exception as e:
-        return f"Error calling LLM: {str(e)}"
+        return {"available": False, "error": f"LLM call failed: {str(e)}"}
 
 @mcp.tool()
 def get_top_keywords(limit: int = 20) -> dict:
