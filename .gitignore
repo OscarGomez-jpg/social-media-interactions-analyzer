@@ -37,3 +37,14 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Agents
+.agents
+.claude
+.opencode
+
+# DB
+/db
+
+# MCP Services
+mcp_services/venv/
