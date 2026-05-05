@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const defaultTimeout = 10 * time.Second
+const defaultTimeout = 120 * time.Second
 
 // MCPClient is a JSON-RPC 2.0 HTTP client for FastMCP microservices.
 type MCPClient struct {

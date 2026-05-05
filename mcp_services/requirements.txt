@@ -1,7 +1,7 @@
 fastmcp
 pandas
 pyarrow
-openai
+requests
 plotly
-pandas
 numpy
+python-dotenv

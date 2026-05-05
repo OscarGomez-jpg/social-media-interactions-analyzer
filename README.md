@@ -26,6 +26,11 @@ python all_in_one_mcp.py
 go run .
 ```
 
+### Web Streamlit
+```bash
+streamlit run app.py
+```
+
 ## Estructura Simplificada
 - `main.go`: Orquestador principal.
 - `mcp_services/all_in_one_mcp.py`: Microservicio unificado con todas las herramientas.

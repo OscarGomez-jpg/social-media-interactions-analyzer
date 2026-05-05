@@ -1,18 +1,24 @@
 import os
 import re
+import subprocess
 import pandas as pd
 from collections import defaultdict
+from pathlib import Path
 from fastmcp import FastMCP
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).parent.parent / ".env")
+except ImportError:
+    pass
+
 mcp = FastMCP("Social Media Analyzer Unified")
-DATA_PATH = "db/data.parquet"
+
 
 def load_data() -> pd.DataFrame:
-    # Obtener la ruta absoluta del directorio donde está este script
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    # La base de datos está en ../db/data.parquet respecto a este script
     abs_path = os.path.join(base_dir, "..", "db", "data.parquet")
-    
+
     if not os.path.exists(abs_path):
         print(f"❌ Error crítico: No se encontró el archivo en {abs_path}")
         return pd.DataFrame()
@@ -20,94 +26,114 @@ def load_data() -> pd.DataFrame:
     try:
         print(f"✅ Cargando datos desde: {abs_path}")
         df = pd.read_parquet(abs_path)
-        # Asegurar tipos correctos para IDs
-        if "id" in df.columns: df["id"] = df["id"].astype(str)
-        if "parentId" in df.columns: df["parentId"] = df["parentId"].astype(str).replace("nan", None)
+        if "id" in df.columns:
+            df["id"] = df["id"].astype(str)
+        if "parentId" in df.columns:
+            df["parentId"] = df["parentId"].astype(str).replace("nan", None)
         return df
     except Exception as e:
-        print(f"Error loading {DATA_PATH}: {e}")
+        print(f"Error loading data: {e}")
         return pd.DataFrame()
 
+
 def clean_text(text: str) -> str:
-    if pd.isna(text): return ""
+    if pd.isna(text):
+        return ""
     text = str(text)
-    # Limpieza de ruido (URLs, emojis, menciones) según Fase 1.3
     text = re.sub(r'http\S+|www\.\S+|@\w+|#\w+', '', text)
-    text = re.sub(r'[^\w\s.,!?]', '', text) # Eliminar emojis excesivos
+    text = re.sub(r'[^\w\s.,!?]', '', text)
     return re.sub(r'\s+', ' ', text).strip()
 
-# --- MÓDULO 1: MÉTRICAS (Determinista) ---
+
+def _ollama_base() -> str:
+    """Returns Ollama base URL. Reads OLLAMA_HOST env var, otherwise auto-detects WSL2 gateway."""
+    host = os.getenv("OLLAMA_HOST")
+    if host:
+        return host.rstrip("/")
+    try:
+        out = subprocess.run(
+            ["ip", "route", "show", "default"],
+            capture_output=True, text=True, timeout=2
+        ).stdout
+        parts = out.split()
+        if "via" in parts:
+            return f"http://{parts[parts.index('via') + 1]}:11434"
+    except Exception:
+        pass
+    return "http://localhost:11434"
+
+
+# --- MÓDULO 1: MÉTRICAS ---
 @mcp.tool()
 def get_metrics(limit: int = 5) -> dict:
     """Identifica posts virales y usuarios influyentes basados en likes y engagement."""
     print(f"📊 [MCP] Llamada a get_metrics(limit={limit})")
     df = load_data()
-    if df.empty: 
-        print("⚠️ [MCP] get_metrics: DataFrame vacío")
+    if df.empty:
         return {"error": "No data available"}
-    
-    # Posts virales
+
     df["liked"] = pd.to_numeric(df["liked"], errors="coerce").fillna(0)
     viral_posts = df.sort_values(by="liked", ascending=False).head(limit)
     print(f"✅ [MCP] get_metrics: Encontrados {len(viral_posts)} posts virales")
-    
-    # Usuarios influyentes (por suma de likes en sus posts)
+
     if "sourceName" in df.columns:
         liked_numeric = pd.to_numeric(df["liked"], errors="coerce").fillna(0)
-        influencers = df.assign(liked_num=liked_numeric).groupby("sourceName")["liked_num"].sum().sort_values(ascending=False).head(limit)
+        influencers = (
+            df.assign(liked_num=liked_numeric)
+            .groupby("sourceName")["liked_num"]
+            .sum()
+            .sort_values(ascending=False)
+            .head(limit)
+        )
         influencer_list = [{"user": k, "total_likes": int(v)} for k, v in influencers.items()]
     else:
         influencer_list = []
 
     return {
         "viral_posts": viral_posts[["id", "text", "liked", "engagementRate"]].to_dict(orient="records"),
-        "top_influencers": influencer_list
+        "top_influencers": influencer_list,
     }
 
-# --- MÓDULO 2: RESUMEN GENERAL (Cualitativo) ---
+
+# --- MÓDULO 2: RESUMEN GENERAL ---
 @mcp.tool()
 def get_summary(sentiment: str = None) -> dict:
-    """Sintetiza el clima de la conversación usando un modelo destilado (OpenAI o Ollama local)."""
+    """Sintetiza el clima de la conversación usando Ollama local."""
     print(f"📝 [MCP] Llamada a get_summary(sentiment={sentiment})")
     df = load_data()
-    if df.empty: 
-        print("⚠️ [MCP] get_summary: DataFrame vacío")
+    if df.empty:
         return {"available": False, "error": "No hay datos"}
-    
-    filtered = df[df["sentiment"] == sentiment] if sentiment else df
-    texts = [clean_text(t) for t in filtered["text"].head(15) if pd.notna(t)]
-    if not texts: 
-        print(f"⚠️ [MCP] get_summary: No se encontraron posts para el sentimiento {sentiment}")
-        return {"available": False, "error": "No se encontraron posts"}
-    
-    print(f"🔄 [MCP] get_summary: Procesando {len(texts)} textos para resumen...")
-    
-    prompt = f"Resume las temáticas principales y el clima de estos posts de redes sociales:\n" + "\n".join([f"- {t[:200]}" for t in texts])
-    
-    api_key = os.getenv("OPENAI_API_KEY")
-    if api_key:
-        try:
-            from openai import OpenAI
-            client = OpenAI(api_key=api_key)
-            response = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
-            return {"available": True, "summary": response.choices[0].message.content}
-        except Exception as e:
-            print(f"OpenAI error: {e}, falling back to Ollama...")
 
-    # Fallback a Ollama local (siguiendo estrategia de modelos 'Small' del plan)
+    filtered = df[df["sentiment"] == sentiment] if sentiment else df
+    texts = [clean_text(t) for t in filtered["text"].head(6) if pd.notna(t)]
+    if not texts:
+        return {"available": False, "error": "No se encontraron posts"}
+
+    print(f"🔄 [MCP] get_summary: Procesando {len(texts)} textos...")
+
+    prompt = (
+        "Resume las temáticas principales y el clima de estos posts de redes sociales:\n"
+        + "\n".join([f"- {t[:150]}" for t in texts])
+    )
+
     try:
         import requests
-        resp = requests.post("http://localhost:11434/api/generate", json={
+        ollama_url = f"{_ollama_base()}/api/generate"
+        print(f"🦙 [MCP] get_summary: Llamando a Ollama en {ollama_url}")
+        resp = requests.post(ollama_url, json={
             "model": "gemma4:e2b",
             "prompt": prompt,
-            "stream": False
-        })
+            "stream": False,
+            "options": {"num_predict": 256},
+        }, timeout=90)
         if resp.status_code == 200:
             return {"available": True, "summary": resp.json().get("response", ""), "method": "ollama_local"}
+        return {"available": False, "error": f"Ollama returned status {resp.status_code}"}
     except Exception as e:
-        return {"available": False, "error": f"Error en resumen (OpenAI/Ollama): {str(e)}"}
+        return {"available": False, "error": f"Error en resumen (Ollama): {str(e)}"}
 
-# --- MÓDULO 3: ANÁLISIS DE PROPAGACIÓN (OBLIGATORIO) ---
+
+# --- MÓDULO 3: ANÁLISIS DE PROPAGACIÓN ---
 @mcp.tool()
 def analyze_propagation(post_id: str) -> dict:
     """
@@ -116,47 +142,47 @@ def analyze_propagation(post_id: str) -> dict:
     """
     print(f"🌳 [MCP] Llamada a analyze_propagation(post_id={post_id})")
     df = load_data()
-    if df.empty: 
-        print("⚠️ [MCP] analyze_propagation: DataFrame vacío")
+    if df.empty:
         return {"error": "No data"}
-    
-    # Construir mapeo relacional
+
+    df["liked"] = pd.to_numeric(df["liked"], errors="coerce").fillna(0)
+
     children_map = defaultdict(list)
     post_data = {}
     for _, row in df.iterrows():
         pid = str(row["id"])
         parent = str(row["parentId"]) if pd.notna(row["parentId"]) else None
         children_map[parent].append(pid)
-        post_data[pid] = {"likes": int(row.get("liked", 0)), "text": str(row.get("text", ""))}
+        post_data[pid] = {"likes": int(row["liked"]), "text": str(row.get("text", ""))}
 
     if post_id not in post_data:
-        print(f"❌ [MCP] analyze_propagation: Post {post_id} no encontrado en el dataset")
+        print(f"❌ [MCP] analyze_propagation: Post {post_id} no encontrado")
         return {"error": f"Post {post_id} no encontrado"}
 
-    # Recorrido del árbol (BFS) para calcular alcance acumulado
     total_reach = 0
     nodes_visited = 0
     queue = [post_id]
     visited = set()
-    
+
     while queue:
         curr = queue.pop(0)
-        if curr in visited: continue
+        if curr in visited:
+            continue
         visited.add(curr)
-        
         total_reach += (post_data[curr]["likes"] + 1)
         nodes_visited += 1
         queue.extend(children_map.get(curr, []))
 
-    print(f"✅ [MCP] analyze_propagation: Alcance calculado: {total_reach} sobre {nodes_visited} nodos.")
+    print(f"✅ [MCP] analyze_propagation: Alcance={total_reach}, Nodos={nodes_visited}")
 
     return {
         "post_id": post_id,
         "original_text": post_data[post_id]["text"][:100],
         "accumulated_reach": total_reach,
         "total_replies": nodes_visited - 1,
-        "impact_score": total_reach * 1.5 # Ejemplo de métrica de impacto mediático
+        "impact_score": total_reach * 1.5,
     }
 
+
 if __name__ == "__main__":
-	mcp.run(transport="http", port=8001, stateless_http=True)
+    mcp.run(transport="http", port=8001, stateless_http=True)
