@@ -3,6 +3,8 @@ package main
 import (
 	"bufio"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
@@ -13,6 +15,7 @@ import (
 	"github.com/joho/godotenv"
 	"social-media-analyzer/pkg/data"
 	"social-media-analyzer/pkg/llm"
+	"social-media-analyzer/pkg/mcp"
 	"social-media-analyzer/pkg/models"
 	"social-media-analyzer/pkg/tools"
 )
@@ -21,22 +24,40 @@ import (
 type Agent struct {
 	tools        *tools.Tools
 	ollamaClient *llm.OllamaClient
-	backend      string // "claude" or "ollama"
+	mcpClient    *mcp.MCPClient
+	queryCache  map[string]string
+	cacheMu     sync.RWMutex
+	backend     string // "claude" or "ollama"
+	useMCP      bool
 }
 
 // NewAgent creates a new agent
-func NewAgent(backend string) *Agent {
+func NewAgent(backend string, useMCP bool) *Agent {
 
 	ollamaClient := llm.NewOllamaClient(
 		"http://localhost:11434",
 		"gemma4:e2b",
 	)
 
+	var mcpClient *mcp.MCPClient
+	if useMCP {
+		mcpClient = mcp.NewMCPClient()
+	}
+
 	return &Agent{
 		tools:        tools.NewTools(),
 		ollamaClient: ollamaClient,
-		backend:      backend,
+		mcpClient:   mcpClient,
+		queryCache: make(map[string]string),
+		backend:    backend,
+		useMCP:     useMCP,
 	}
+}
+
+func hashQuery(q string) string {
+	h := sha256.New()
+	h.Write([]byte(q))
+	return hex.EncodeToString(h.Sum(nil))[:16]
 }
 
 // ProcessQuery processes a user query with concurrent tool execution
@@ -45,6 +66,15 @@ func (a *Agent) ProcessQuery(query string) (string, error) {
 	defer cancel()
 
 	log.Printf("🔍 Analyzing query: %s\n", query)
+
+	queryHash := hashQuery(query)
+	a.cacheMu.RLock()
+	if cached, ok := a.queryCache[queryHash]; ok {
+		a.cacheMu.RUnlock()
+		log.Printf("📦 Returning cached response")
+		return cached, nil
+	}
+	a.cacheMu.RUnlock()
 
 	// Get tool calls from LLM
 	var toolCalls []llm.ToolCall
@@ -60,7 +90,7 @@ func (a *Agent) ProcessQuery(query string) (string, error) {
 		return "No se requieren herramientas para esta consulta.", nil
 	}
 
-	// Execute tools concurrently with goroutines
+	// Execute tools (MCP or local)
 	toolResults := a.executeToolsConcurrently(toolCalls)
 
 	// Convert results to map for final response
@@ -77,6 +107,11 @@ func (a *Agent) ProcessQuery(query string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to generate response: %w", err)
 	}
+
+	// Cache the response
+	a.cacheMu.Lock()
+	a.queryCache[queryHash] = finalResponse
+	a.cacheMu.Unlock()
 
 	// Print tool results
 	fmt.Println("\n📊 Herramientas ejecutadas:")
@@ -104,12 +139,49 @@ func (a *Agent) executeToolsConcurrently(toolCalls []llm.ToolCall) []models.Tool
 	return results
 }
 
+// determineMCPService determines which MCP service to use based on the query
+func (a *Agent) determineMCPService(query string) string {
+	queryLower := strings.ToLower(query)
+	
+	if strings.Contains(queryLower, "metric") || 
+	   strings.Contains(queryLower, "engagement") ||
+	   strings.Contains(queryLower, " likes ") ||
+	   strings.Contains(queryLower, "rate") ||
+	   strings.Contains(queryLower, "positiv") ||
+	   strings.Contains(queryLower, "negativ") {
+		return "metrics"
+	}
+	
+	if strings.Contains(queryLower, "propagat") ||
+	   strings.Contains(queryLower, "reply") ||
+	   strings.Contains(queryLower, "thread") ||
+	   strings.Contains(queryLower, "reach") ||
+	   strings.Contains(queryLower, "depth") {
+		return "propagation"
+	}
+	
+	if strings.Contains(queryLower, "summar") ||
+	   strings.Contains(queryLower, "topic") ||
+	   strings.Contains(queryLower, "theme") ||
+	   strings.Contains(queryLower, "keyword") {
+		return "summary"
+	}
+	
+	return "metrics"
+}
+
 // executeTool executes a single tool
 func (a *Agent) executeTool(toolCall llm.ToolCall) models.ToolResult {
 	result := models.ToolResult{
 		ToolName: toolCall.Name,
 	}
 
+	// If MCP is enabled, use MCP client
+	if a.useMCP && a.mcpClient != nil {
+		return a.executeMCPTool(toolCall)
+	}
+
+	// Otherwise use local tools
 	switch toolCall.Name {
 	case "get_conversation_summary":
 		numPosts := 10
@@ -138,6 +210,44 @@ func (a *Agent) executeTool(toolCall llm.ToolCall) models.ToolResult {
 	default:
 		result.Status = "error"
 		result.Error = fmt.Sprintf("Unknown tool: %s", toolCall.Name)
+	}
+
+	return result
+}
+
+// executeMCPTool executes a tool via MCP client
+func (a *Agent) executeMCPTool(toolCall llm.ToolCall) models.ToolResult {
+	result := models.ToolResult{
+		ToolName: toolCall.Name,
+	}
+
+	mcpService := a.determineMCPService(toolCall.Name)
+	params := make(map[string]interface{})
+	
+	for k, v := range toolCall.Args {
+		params[k] = v
+	}
+
+	var mcpResult interface{}
+	var err error
+
+	switch mcpService {
+	case "metrics":
+		mcpResult, err = a.mcpClient.CallMetrics(toolCall.Name, params)
+	case "propagation":
+		mcpResult, err = a.mcpClient.CallPropagation(toolCall.Name, params)
+	case "summary":
+		mcpResult, err = a.mcpClient.CallSummary(toolCall.Name, params)
+	default:
+		err = fmt.Errorf("unknown MCP service: %s", mcpService)
+	}
+
+	if err != nil {
+		result.Status = "error"
+		result.Error = err.Error()
+	} else {
+		result.Result = mcpResult
+		result.Status = "success"
 	}
 
 	return result
@@ -195,8 +305,13 @@ func main() {
 		log.Fatalf("Invalid LLM_BACKEND: %s (must be 'ollama')\n", backend)
 	}
 
+	useMCP := os.Getenv("USE_MCP") == "true"
+	if useMCP {
+		log.Printf("🔌 Using MCP services for tool execution\n")
+	}
+
 	// Create agent
-	agent := NewAgent(backend)
+	agent := NewAgent(backend, useMCP)
 
 	// Start interactive loop
 	agent.InteractiveLoop()
