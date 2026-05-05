@@ -42,9 +42,13 @@ Thumbs.db
 .agents
 .claude
 .opencode
+skills-lock.json
 
 # DB
 /db
 
 # MCP Services
 mcp_services/venv/
+
+# Cache
+mcp_services/__pycache__/
