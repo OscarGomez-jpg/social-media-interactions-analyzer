@@ -373,8 +373,71 @@
             </div>
         </div>
 
-<!-- Slide 11: Contacto -->
-        <div class="slide slide-content slide-final" data-slide="10">
+<!-- Slide 11: Gap analysis -->
+<div class="slide slide-content" data-slide="10">
+    <div class="slide-header">
+        <span class="slide-number">14</span>
+        <h2>Gap analysis vs plan original</h2>
+    </div>
+
+    <div class="demo-grid">
+        <div class="demo-card principal">
+            <h3>✅ Implementado</h3>
+            <p>Carga Parquet, BFS de propagación, limpieza de texto y uso de LLM local con Ollama.</p>
+        </div>
+
+        <div class="demo-card">
+            <span class="demo-bg-icon">⚠️</span>
+            <h3>Parcial</h3>
+            <p>Caché, patrón ReAct y trazabilidad funcionan, pero aún de forma limitada.</p>
+        </div>
+
+        <div class="demo-card">
+            <span class="demo-bg-icon">❌</span>
+            <h3>No implementado</h3>
+            <p>Memoria episódica, planning secuencial, reflection loop, RAG y detección de alucinaciones.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 12: Oportunidades P0 -->
+<div class="slide slide-content" data-slide="11">
+    <div class="slide-header">
+        <span class="slide-number">12</span>
+        <h2>Oportunidades P1 — Alto Valor</h2>
+    </div>
+
+    <div class="demo-grid">
+        <div class="demo-card principal">
+            <h3>🔁 Reflection loop</h3>
+            <p>Agregar un nodo de verificación para validar si los datos realmente responden la pregunta antes de generar la respuesta final.</p>
+            <p><strong>Impacto:</strong> alto · <strong>Esfuerzo:</strong> medio</p>
+        </div>
+
+        <div class="demo-card">
+            <span class="demo-bg-icon">🧭</span>
+            <h3>Planning secuencial</h3>
+            <p>Dividir preguntas complejas en pasos: primero obtener métricas y luego analizar propagación del post principal.</p>
+            <p><strong>Impacto:</strong> alto · <strong>Esfuerzo:</strong> medio</p>
+        </div>
+
+        <div class="demo-card">
+            <span class="demo-bg-icon">⚡</span>
+            <h3>Caché de herramientas</h3>
+            <p>Guardar resultados de MCP por herramienta y parámetros, no solo la respuesta final de la consulta.</p>
+            <p><strong>Impacto:</strong> medio · <strong>Esfuerzo:</strong> bajo</p>
+        </div>
+
+        <div class="demo-card">
+            <span class="demo-bg-icon">🔤</span>
+            <h3>Sentimiento flexible</h3>
+            <p>Hacer las búsquedas de sentimiento case-insensitive, ya que el dataset usa MAYÚSCULAS y el usuario suele escribir en minúsculas.</p>
+            <p><strong>Impacto:</strong> medio · <strong>Esfuerzo:</strong> bajo</p>
+        </div>
+    </div>
+</div>
+<!-- Slide 13: Contacto -->
+        <div class="slide slide-content slide-final" data-slide="12">
             <div class="final-hero">
                 <h1 class="final-title">¡Gracias!</h1>
                 <h2 class="final-subtitle">Transforma el Social Listening con IA</h2>
@@ -403,7 +466,7 @@
     </div>
 
     <div class="slide-counter">
-        <span id="currentSlide">1</span> / <span id="totalSlides">11</span>
+        <span id="currentSlide">1</span> / <span id="totalSlides">13</span>
     </div>
 
     <div class="nav-controls">
@@ -416,7 +479,7 @@
     </div>
 
     <script>
-        const totalSlides = 11;
+        const totalSlides = 13;
         let currentSlide = 0;
 
         function updateSlide() {
