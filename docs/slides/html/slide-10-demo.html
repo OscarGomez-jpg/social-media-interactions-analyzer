@@ -1,26 +1,29 @@
 <div class="slide slide-content" data-slide="9">
     <div class="slide-header"><span class="slide-number">10</span><h2>Demo: Muestreo en Vivo</h2></div>
     <div class="demo-grid">
-        <div class="demo-card principal">
-            <span class="demo-bg-icon">🎬</span>
-            <span class="demo-bg-icon" style="font-size: 80px;">Video aquí</span>
-            <div class="demo-icon">🎬</div>
-            <h3>Espacio para Demostración</h3>
-            <p>Esta slide se completará cuando el desarrollo esté disponible</p>
-            <div class="placeholder-line"></div>
-            <div class="placeholder-line short"></div>
-            <div class="placeholder-line"></div>
+        <div class="demo-card principal demo-media-card">
+            <h3>🎬 Demo funcional</h3>
+            <p>Vista del flujo de análisis funcionando con el agente y los MCPs.</p>
+            <video class="demo-video" controls preload="metadata" poster="../../resources/demo-pic.jpeg">
+                <source src="../../resources/demo-video.mp4" type="video/mp4">
+                Tu navegador no soporta la reproducción de video.
+            </video>
         </div>
-        <div class="demo-card">
-            <span class="demo-bg-icon">💬</span>
-            <h3>💬 Chat con el agente</h3>
-            <p>Interacción directa mediante lenguaje natural</p>
-        </div>
+
+<button class="demo-capture-button" type="button" onclick="openImageModal('../../resources/demo-pic.jpeg')">
+    <img
+        class="demo-capture"
+        src="../../resources/demo-pic.jpeg"
+        alt="Captura de la demo del Social Media Interactions Analyzer"
+    />
+</button>
+
         <div class="demo-card">
             <span class="demo-bg-icon">📊</span>
             <h3>📊 Respuestas en tiempo real</h3>
             <p>Análisis instantáneo de interacciones</p>
         </div>
+
         <div class="demo-card">
             <span class="demo-bg-icon">🔍</span>
             <h3>🔍 Consultas en lenguaje natural</h3>

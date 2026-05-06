@@ -305,6 +305,49 @@ h4 { font-size: 36px !important; }
 .demo-card p { font-size: 26px !important; color: var(--text-muted); }
 .placeholder-line { height: 18px; background: rgba(33, 150, 243, 0.3); border-radius: 8px; margin: 1rem 0; }
 .placeholder-line.short { width: 60%; }
+.demo-media-card {
+    gap: 0.75rem;
+    overflow: hidden;
+}
+
+.demo-media-card h3,
+.demo-media-card p {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+}
+
+.demo-video {
+    width: 100%;
+    max-height: 520px;
+    border-radius: 14px;
+    border: 2px solid rgba(79, 195, 247, 0.45);
+    background: #000;
+    object-fit: contain;
+    position: relative;
+    z-index: 1;
+}
+
+.demo-capture-card {
+    align-items: center;
+    gap: 1rem;
+    overflow: hidden;
+}
+
+.demo-capture-card h3 {
+    text-align: center;
+}
+
+.demo-capture {
+    width: 100%;
+    max-height: 220px;
+    border-radius: 12px;
+    border: 2px solid rgba(79, 195, 247, 0.35);
+    object-fit: contain;
+    background: rgba(0, 0, 0, 0.25);
+    position: relative;
+    z-index: 1;
+}
 
 /* Contacto */
 .contact-grid { display: flex; flex-direction: column; gap: 3rem; flex: 1; justify-content: center; align-items: center; }
@@ -445,4 +488,63 @@ h4 { font-size: 36px !important; }
     border-radius: 25px;
     font-size: 16px !important;
     font-family: 'JetBrains Mono', monospace;
+}
+
+.demo-capture-button {
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: zoom-in;
+    position: relative;
+    z-index: 2;
+}
+
+.demo-capture-button:hover .demo-capture {
+    transform: scale(1.02);
+    border-color: rgba(79, 195, 247, 0.75);
+}
+
+.demo-capture {
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.image-preview-modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: rgba(0, 0, 0, 0.88);
+    z-index: 9999;
+}
+
+.image-preview-modal.open {
+    display: flex;
+}
+
+.image-preview-modal-img {
+    max-width: 95vw;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: 14px;
+    border: 2px solid rgba(79, 195, 247, 0.6);
+    background: #000;
+}
+
+.image-preview-close {
+    position: fixed;
+    top: 1.5rem;
+    right: 2rem;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 999px;
+    border: 2px solid rgba(79, 195, 247, 0.7);
+    background: rgba(13, 41, 71, 0.95);
+    color: #00e5ff;
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 10000;
 }
